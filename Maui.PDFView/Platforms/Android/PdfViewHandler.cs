@@ -86,6 +86,39 @@ namespace Maui.PDFView.Platforms.Android
             return layout;
         }
 
+        /// <summary>
+        /// Stretches the RecyclerView to the size the handler was actually arranged at.
+        ///
+        /// MAUI arranges the platform view by calling View.Layout on it, and View.Layout does not
+        /// re-measure children. The RecyclerView therefore keeps whatever it got during the
+        /// desired-size pass, which is the height of the unzoomed content — a portrait page
+        /// rendered at screen width is shorter than the viewport, so the RecyclerView ends up
+        /// shorter than its parent even though its LayoutParams say MatchParent. Everything drawn
+        /// below that stale height is clipped away: zooming in cut the page off mid-content and
+        /// left an empty band underneath.
+        /// </summary>
+        public override void PlatformArrange(Microsoft.Maui.Graphics.Rect frame)
+        {
+            base.PlatformArrange(frame);
+
+            if (_recycleView == null || PlatformView == null)
+                return;
+
+            var width = PlatformView.Width;
+            var height = PlatformView.Height;
+
+            if (width <= 0 || height <= 0)
+                return;
+
+            if (_recycleView.Width == width && _recycleView.Height == height)
+                return;
+
+            _recycleView.Measure(
+                global::Android.Views.View.MeasureSpec.MakeMeasureSpec(width, MeasureSpecMode.Exactly),
+                global::Android.Views.View.MeasureSpec.MakeMeasureSpec(height, MeasureSpecMode.Exactly));
+            _recycleView.Layout(0, 0, width, height);
+        }
+
         public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
         {
             if (_sizeHelper.UpdateSize(widthConstraint, heightConstraint))
