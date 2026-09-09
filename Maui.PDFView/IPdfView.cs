@@ -1,4 +1,4 @@
-﻿using System.Windows.Input;
+using System.Windows.Input;
 
 namespace Maui.PDFView
 {
@@ -11,5 +11,7 @@ namespace Maui.PDFView
         uint PageIndex { get; set; }
 
         ICommand PageChangedCommand { get; set; }
+        PdfTransitionMode TransitionMode { get; set; }
+        bool DoubleSided { get; set; }
     }
 }

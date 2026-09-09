@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Windows.Input;
 
 namespace Maui.PDFView
@@ -42,9 +42,28 @@ namespace Maui.PDFView
                 declaringType: typeof(PdfView),
                 defaultValue: (uint)0, defaultBindingMode: BindingMode.TwoWay);
 
-        public string Uri
+        public static readonly BindableProperty TransitionModeProperty = BindableProperty.Create(
+                propertyName: nameof(TransitionMode),
+                returnType: typeof(PdfTransitionMode),
+                declaringType: typeof(PdfView),
+                defaultValue: PdfTransitionMode.ContinuousScroll);
+
+        public static readonly BindableProperty EnablePageCurlProperty = BindableProperty.Create(
+                propertyName: nameof(EnablePageCurl),
+                returnType: typeof(bool),
+                declaringType: typeof(PdfView),
+                defaultValue: false,
+                propertyChanged: OnEnablePageCurlPropertyChanged);
+
+        public static readonly BindableProperty DoubleSidedProperty = BindableProperty.Create(
+                propertyName: nameof(DoubleSided),
+                returnType: typeof(bool),
+                declaringType: typeof(PdfView),
+                defaultValue: false);
+
+        public string? Uri
         {
-            get => (string)GetValue(UriProperty);
+            get => (string?)GetValue(UriProperty);
             set => SetValue(UriProperty, value);
         }
 
@@ -76,6 +95,32 @@ namespace Maui.PDFView
         {
             get => (uint)GetValue(PageIndexProperty);
             set => SetValue(PageIndexProperty, value);
+        }
+
+        public PdfTransitionMode TransitionMode
+        {
+            get => (PdfTransitionMode)GetValue(TransitionModeProperty);
+            set => SetValue(TransitionModeProperty, value);
+        }
+
+        public bool EnablePageCurl
+        {
+            get => (bool)GetValue(EnablePageCurlProperty);
+            set => SetValue(EnablePageCurlProperty, value);
+        }
+
+        public bool DoubleSided
+        {
+            get => (bool)GetValue(DoubleSidedProperty);
+            set => SetValue(DoubleSidedProperty, value);
+        }
+
+        private static void OnEnablePageCurlPropertyChanged(BindableObject bindable, object oldValue, object newValue)
+        {
+            if (bindable is PdfView pdfView && newValue is bool enableCurl)
+            {
+                pdfView.TransitionMode = enableCurl ? PdfTransitionMode.PageCurl : PdfTransitionMode.ContinuousScroll;
+            }
         }
 
         private static void OnMaxZoomPropertyChanged(BindableObject bindable, object oldValue, object newValue)
