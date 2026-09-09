@@ -78,6 +78,20 @@ namespace Maui.PDFView.Platforms.iOS
         {
             handler._appearance = pdfView.PageAppearance ?? new PageAppearance();
 
+            if (handler._pdfDocument != null)
+            {
+                CropPages(handler._pdfDocument, handler._appearance.Crop);
+            }
+
+            if (handler._pageDataSource != null)
+            {
+                handler._pageDataSource.Appearance = handler._appearance;
+            }
+            if (handler._pageDelegate != null)
+            {
+                handler._pageDelegate.Appearance = handler._appearance;
+            }
+
             if (handler._pdfKitView != null)
             {
                 SetPdfKitAppearance(handler._pdfKitView, handler._appearance);
@@ -85,6 +99,16 @@ namespace Maui.PDFView.Platforms.iOS
 
             if (pdfView.TransitionMode == PdfTransitionMode.PageCurl)
             {
+                var themeBg = handler._appearance?.IsDarkMode == true
+                    ? UIColor.FromRGB(31, 31, 34)
+                    : UIColor.White;
+
+                if (handler._pageViewController?.View != null)
+                {
+                    handler._pageViewController.View.BackgroundColor = themeBg;
+                }
+                handler.PlatformView.BackgroundColor = themeBg;
+
                 handler._pageRenderer.ClearCache();
                 handler.GotoPageCurl(pdfView.PageIndex, animated: false);
             }
@@ -657,10 +681,18 @@ namespace Maui.PDFView.Platforms.iOS
 
         private void CleanUpPageViewController()
         {
-            PlatformView?.DetachCurrent();
+            try
+            {
+                PlatformView?.DetachCurrent();
+            }
+            catch (InvalidOperationException)
+            {
+                // PlatformView is already detached or disposed during Shell teardown
+            }
 
             if (_pageViewController != null)
             {
+                _pageViewController.View?.RemoveFromSuperview();
                 _pageViewController.DataSource = null!;
                 _pageViewController.Delegate = null!;
                 _pageViewController.Dispose();
@@ -687,21 +719,29 @@ namespace Maui.PDFView.Platforms.iOS
 
         private static void CropPages(PdfKit.PdfDocument pdfdoc, Thickness cropBounds)
         {
-            if (cropBounds.IsEmpty)
-                return;
-
             for (var i = 0; i < pdfdoc.PageCount; ++i)
             {
                 var page = pdfdoc.GetPage(i);
                 if (page == null)
                     continue;
 
-                var boundW = cropBounds.Left + cropBounds.Right;
-                var boundH = cropBounds.Top + cropBounds.Bottom;
-
                 var boxType = PdfKit.PdfDisplayBox.Crop;
-                var oldBounds = page.GetBoundsForBox(boxType);
-                page.SetBoundsForBox(new CGRect(cropBounds.Left, cropBounds.Top, oldBounds.Width - boundW, oldBounds.Height - boundH), boxType);
+                var mediaBox = page.GetBoundsForBox(PdfKit.PdfDisplayBox.Media);
+                if (cropBounds.IsEmpty)
+                {
+                    page.SetBoundsForBox(mediaBox, boxType);
+                }
+                else
+                {
+                    var boundW = (nfloat)(cropBounds.Left + cropBounds.Right);
+                    var boundH = (nfloat)(cropBounds.Top + cropBounds.Bottom);
+                    var croppedRect = new CGRect(
+                        mediaBox.X + (nfloat)cropBounds.Left,
+                        mediaBox.Y + (nfloat)cropBounds.Bottom,
+                        (nfloat)Math.Max(50, mediaBox.Width - boundW),
+                        (nfloat)Math.Max(50, mediaBox.Height - boundH));
+                    page.SetBoundsForBox(croppedRect, boxType);
+                }
             }
         }
     }

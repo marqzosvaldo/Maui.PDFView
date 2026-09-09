@@ -10,7 +10,7 @@ namespace Maui.PDFView.Platforms.iOS
     {
         private readonly PdfDocument _document;
         private readonly PdfPageDataSource _dataSource;
-        private readonly PageAppearance? _appearance;
+        public PageAppearance? Appearance { get; set; }
         private readonly Action<uint> _onPageChanged;
         private readonly Action<bool, uint>? _onSpineChanged;
         private readonly Func<UIViewController>? _createBlankPage;
@@ -25,7 +25,7 @@ namespace Maui.PDFView.Platforms.iOS
         {
             _document = document;
             _dataSource = dataSource;
-            _appearance = appearance;
+            Appearance = appearance;
             _onPageChanged = onPageChanged;
             _onSpineChanged = onSpineChanged;
             _createBlankPage = createBlankPage;

@@ -9,7 +9,7 @@ namespace Maui.PDFView.Platforms.iOS
     {
         private readonly PdfDocument _document;
         private readonly PdfPageRenderer _renderer;
-        private readonly PageAppearance? _appearance;
+        public PageAppearance? Appearance { get; set; }
         private readonly float _maxZoom;
         private readonly Action<bool>? _onZoomStateChanged;
 
@@ -22,7 +22,7 @@ namespace Maui.PDFView.Platforms.iOS
         {
             _document = document;
             _renderer = renderer;
-            _appearance = appearance;
+            Appearance = appearance;
             _maxZoom = maxZoom;
             _onZoomStateChanged = onZoomStateChanged;
         }
@@ -36,7 +36,7 @@ namespace Maui.PDFView.Platforms.iOS
                 pageIndex,
                 _document,
                 _renderer,
-                _appearance,
+                Appearance,
                 _maxZoom)
             {
                 OnZoomStateChanged = _onZoomStateChanged
@@ -95,7 +95,7 @@ namespace Maui.PDFView.Platforms.iOS
                 {
                     if (currentController.PageIndex % 2 == 0)
                     {
-                        return new PdfBlankPageViewController(_appearance?.IsDarkMode == true);
+                        return new PdfBlankPageViewController(Appearance?.IsDarkMode == true);
                     }
                     return null!;
                 }

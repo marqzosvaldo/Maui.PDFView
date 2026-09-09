@@ -36,7 +36,9 @@ namespace Maui.PDFView.Platforms.iOS
             }
 
             var isDark = appearance?.IsDarkMode == true;
-            var key = new NSString($"{pageIndex}_{(int)targetSize.Width}x{(int)targetSize.Height}_{(isDark ? "dark" : "light")}");
+            var cropLeft = (int)(appearance?.Crop.Left ?? 0);
+            var cropTop = (int)(appearance?.Crop.Top ?? 0);
+            var key = new NSString($"{pageIndex}_{(int)targetSize.Width}x{(int)targetSize.Height}_{cropLeft}x{cropTop}_{(isDark ? "dark" : "light")}");
             var cached = _imageCache.ObjectForKey(key) as UIImage;
             if (cached != null)
                 return cached;
