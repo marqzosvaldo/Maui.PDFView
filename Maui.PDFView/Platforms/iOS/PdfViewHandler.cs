@@ -609,7 +609,10 @@ namespace Maui.PDFView.Platforms.iOS
             }
             else
             {
-                if (currentIndex == pageIndex && animated && currentControllers != null && currentControllers.Length == 1)
+                var isDark = _appearance?.IsDarkMode == true;
+                var isDoubleSided = _pageViewController.DoubleSided;
+
+                if (currentIndex == pageIndex && animated && currentControllers != null && currentControllers.Length == (isDoubleSided ? 2 : 1))
                     return;
 
                 var targetController = _pageDataSource.CreateViewController(pageIndex);
@@ -620,8 +623,12 @@ namespace Maui.PDFView.Platforms.iOS
                     ? UIPageViewControllerNavigationDirection.Forward
                     : UIPageViewControllerNavigationDirection.Reverse;
 
+                var controllers = isDoubleSided
+                    ? new UIViewController[] { targetController, new PdfBlankPageViewController(isDark, pageIndex) }
+                    : new UIViewController[] { targetController };
+
                 _pageViewController.SetViewControllers(
-                    new UIViewController[] { targetController },
+                    controllers,
                     direction,
                     animated,
                     null);
