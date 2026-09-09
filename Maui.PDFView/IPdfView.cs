@@ -14,5 +14,6 @@ namespace Maui.PDFView
         PdfTransitionMode TransitionMode { get; set; }
         bool DoubleSided { get; set; }
         bool IsDualPage { get; set; }
+        bool IsDarkMode { get; set; }
     }
 }

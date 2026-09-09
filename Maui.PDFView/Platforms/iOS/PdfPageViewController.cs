@@ -36,7 +36,9 @@ namespace Maui.PDFView.Platforms.iOS
         public override void ViewDidLoad()
         {
             base.ViewDidLoad();
-            View!.BackgroundColor = UIColor.SystemBackground;
+            View!.BackgroundColor = _appearance?.IsDarkMode == true
+                ? UIColor.FromRGB(31, 31, 34)
+                : UIColor.White;
 
             _imageView = new UIImageView(View.Bounds)
             {

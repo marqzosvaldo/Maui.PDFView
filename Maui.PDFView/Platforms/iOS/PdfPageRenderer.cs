@@ -35,7 +35,8 @@ namespace Maui.PDFView.Platforms.iOS
                 targetSize = screenBounds.Size;
             }
 
-            var key = new NSString($"{pageIndex}_{(int)targetSize.Width}x{(int)targetSize.Height}");
+            var isDark = appearance?.IsDarkMode == true;
+            var key = new NSString($"{pageIndex}_{(int)targetSize.Width}x{(int)targetSize.Height}_{(isDark ? "dark" : "light")}");
             var cached = _imageCache.ObjectForKey(key) as UIImage;
             if (cached != null)
                 return cached;
@@ -84,6 +85,13 @@ namespace Maui.PDFView.Platforms.iOS
 
                 page.Draw(box, cgContext);
                 cgContext.RestoreState();
+
+                if (isDark)
+                {
+                    cgContext.SetBlendMode(CGBlendMode.Difference);
+                    cgContext.SetFillColor(UIColor.FromRGBA(0.88f, 0.88f, 0.90f, 1.0f).CGColor);
+                    cgContext.FillRect(new CGRect(CGPoint.Empty, targetSize));
+                }
             });
 
             _imageCache.SetObjectForKey(image, key);

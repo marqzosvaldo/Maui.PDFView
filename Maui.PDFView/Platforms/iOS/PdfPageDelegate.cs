@@ -12,17 +12,20 @@ namespace Maui.PDFView.Platforms.iOS
         private readonly PdfPageDataSource _dataSource;
         private readonly Action<uint> _onPageChanged;
         private readonly Action<bool, uint>? _onSpineChanged;
+        private readonly Func<UIViewController>? _createBlankPage;
 
         public PdfPageDelegate(
             PdfDocument document,
             PdfPageDataSource dataSource,
             Action<uint> onPageChanged,
-            Action<bool, uint>? onSpineChanged = null)
+            Action<bool, uint>? onSpineChanged = null,
+            Func<UIViewController>? createBlankPage = null)
         {
             _document = document;
             _dataSource = dataSource;
             _onPageChanged = onPageChanged;
             _onSpineChanged = onSpineChanged;
+            _createBlankPage = createBlankPage;
         }
 
         public override void DidFinishAnimating(
@@ -99,11 +102,11 @@ namespace Maui.PDFView.Platforms.iOS
                 UIViewController rightController;
                 if (rightPage < _document.PageCount)
                 {
-                    rightController = (UIViewController?)_dataSource.CreateViewController(rightPage) ?? new PdfBlankPageViewController();
+                    rightController = (UIViewController?)_dataSource.CreateViewController(rightPage) ?? (_createBlankPage?.Invoke() ?? new PdfBlankPageViewController());
                 }
                 else
                 {
-                    rightController = new PdfBlankPageViewController();
+                    rightController = _createBlankPage?.Invoke() ?? new PdfBlankPageViewController();
                 }
 
                 pageViewController.SetViewControllers(

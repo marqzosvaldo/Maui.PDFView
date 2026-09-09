@@ -80,7 +80,7 @@ namespace Maui.PDFView.Platforms.iOS
                 if (pageViewController.SpineLocation == UIPageViewControllerSpineLocation.Mid &&
                     currentController.PageIndex % 2 == 0)
                 {
-                    return new PdfBlankPageViewController();
+                    return new PdfBlankPageViewController(_appearance?.IsDarkMode == true);
                 }
                 return null!;
             }

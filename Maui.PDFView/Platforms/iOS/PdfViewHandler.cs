@@ -21,6 +21,7 @@ namespace Maui.PDFView.Platforms.iOS
             [nameof(IPdfView.TransitionMode)] = MapTransitionMode,
             [nameof(IPdfView.DoubleSided)] = MapDoubleSided,
             [nameof(IPdfView.IsDualPage)] = MapIsDualPage,
+            [nameof(IPdfView.IsDarkMode)] = MapIsDarkMode,
         };
 
         private string? _fileName;
@@ -110,6 +111,16 @@ namespace Maui.PDFView.Platforms.iOS
         static void MapIsDualPage(PdfViewHandler handler, IPdfView pdfView)
         {
             // OneWayToSource from platform to VirtualView
+        }
+
+        static void MapIsDarkMode(PdfViewHandler handler, IPdfView pdfView)
+        {
+            handler._appearance.IsDarkMode = pdfView.IsDarkMode;
+            if (pdfView.TransitionMode == PdfTransitionMode.PageCurl)
+            {
+                handler._pageRenderer.ClearCache();
+                handler.GotoPageCurl(pdfView.PageIndex, animated: false);
+            }
         }
 
         protected override PdfPlatformContainerView CreatePlatformView()
@@ -416,7 +427,8 @@ namespace Maui.PDFView.Platforms.iOS
                 _pdfDocument,
                 _pageDataSource,
                 OnPageCurlFinishedAnimating,
-                OnSpineChangedFromDelegate);
+                OnSpineChangedFromDelegate,
+                CreateBlankPageViewController);
 
             _pageViewController.DataSource = _pageDataSource;
             _pageViewController.Delegate = _pageDelegate;
@@ -591,9 +603,9 @@ namespace Maui.PDFView.Platforms.iOS
             }
         }
 
-        private static UIViewController CreateBlankPageViewController()
+        private UIViewController CreateBlankPageViewController()
         {
-            return new PdfBlankPageViewController();
+            return new PdfBlankPageViewController(_appearance.IsDarkMode);
         }
 
         private void CleanUpPageViewController()

@@ -68,6 +68,12 @@ namespace Maui.PDFView
                 defaultValue: false,
                 defaultBindingMode: BindingMode.OneWayToSource);
 
+        public static readonly BindableProperty IsDarkModeProperty = BindableProperty.Create(
+                propertyName: nameof(IsDarkMode),
+                returnType: typeof(bool),
+                declaringType: typeof(PdfView),
+                defaultValue: false);
+
         public string? Uri
         {
             get => (string?)GetValue(UriProperty);
@@ -126,6 +132,12 @@ namespace Maui.PDFView
         {
             get => (bool)GetValue(IsDualPageProperty);
             set => SetValue(IsDualPageProperty, value);
+        }
+
+        public bool IsDarkMode
+        {
+            get => (bool)GetValue(IsDarkModeProperty);
+            set => SetValue(IsDarkModeProperty, value);
         }
 
         private static void OnEnablePageCurlPropertyChanged(BindableObject bindable, object oldValue, object newValue)
