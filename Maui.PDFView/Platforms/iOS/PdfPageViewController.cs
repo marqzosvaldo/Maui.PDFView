@@ -36,16 +36,19 @@ namespace Maui.PDFView.Platforms.iOS
         public override void ViewDidLoad()
         {
             base.ViewDidLoad();
-            View!.BackgroundColor = _appearance?.IsDarkMode == true
+            var themeBg = _appearance?.IsDarkMode == true
                 ? UIColor.FromRGB(31, 31, 34)
                 : UIColor.White;
+
+            View!.BackgroundColor = themeBg;
 
             _imageView = new UIImageView(View.Bounds)
             {
                 ContentMode = UIViewContentMode.ScaleAspectFit,
                 AutoresizingMask = UIViewAutoresizing.FlexibleDimensions,
                 ClipsToBounds = true,
-                UserInteractionEnabled = true
+                UserInteractionEnabled = true,
+                BackgroundColor = themeBg
             };
 
             if (_maxZoom > 1.0f)
@@ -57,7 +60,8 @@ namespace Maui.PDFView.Platforms.iOS
                     MinimumZoomScale = 1.0f,
                     BouncesZoom = true,
                     ShowsHorizontalScrollIndicator = false,
-                    ShowsVerticalScrollIndicator = false
+                    ShowsVerticalScrollIndicator = false,
+                    BackgroundColor = themeBg
                 };
 
                 _scrollView.ViewForZoomingInScrollView = _ => _imageView;

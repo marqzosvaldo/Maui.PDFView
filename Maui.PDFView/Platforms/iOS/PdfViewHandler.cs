@@ -116,6 +116,20 @@ namespace Maui.PDFView.Platforms.iOS
         static void MapIsDarkMode(PdfViewHandler handler, IPdfView pdfView)
         {
             handler._appearance.IsDarkMode = pdfView.IsDarkMode;
+            var themeBg = pdfView.IsDarkMode
+                ? UIColor.FromRGB(31, 31, 34)
+                : UIColor.White;
+
+            if (handler._pageViewController?.View != null)
+            {
+                handler._pageViewController.View.BackgroundColor = themeBg;
+            }
+
+            if (handler.PlatformView != null)
+            {
+                handler.PlatformView.BackgroundColor = themeBg;
+            }
+
             if (pdfView.TransitionMode == PdfTransitionMode.PageCurl)
             {
                 handler._pageRenderer.ClearCache();
@@ -415,6 +429,16 @@ namespace Maui.PDFView.Platforms.iOS
             {
                 DoubleSided = isLandscape || (VirtualView?.DoubleSided ?? false)
             };
+
+            var themeBg = _appearance?.IsDarkMode == true
+                ? UIColor.FromRGB(31, 31, 34)
+                : UIColor.White;
+
+            if (_pageViewController.View != null)
+            {
+                _pageViewController.View.BackgroundColor = themeBg;
+            }
+            PlatformView.BackgroundColor = themeBg;
 
             _pageDataSource = new PdfPageDataSource(
                 _pdfDocument,
