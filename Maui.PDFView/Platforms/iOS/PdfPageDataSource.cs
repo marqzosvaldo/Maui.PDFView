@@ -69,33 +69,13 @@ namespace Maui.PDFView.Platforms.iOS
             else
             {
                 // SpineLocation.Min (Portrait)
-                var isDark = _appearance?.IsDarkMode == true;
-                if (pageViewController.DoubleSided && isDark)
-                {
-                    if (referenceViewController is PdfPageViewController currentController)
-                    {
-                        if (currentController.PageIndex == 0)
-                            return null!;
-
-                        return new PdfBlankPageViewController(isDark, currentController.PageIndex - 1);
-                    }
-                    else if (referenceViewController is PdfBlankPageViewController blankController)
-                    {
-                        return CreateViewController(blankController.PageIndex)!;
-                    }
-
+                if (referenceViewController is not PdfPageViewController currentController)
                     return null!;
-                }
-                else
-                {
-                    if (referenceViewController is not PdfPageViewController currentController)
-                        return null!;
 
-                    if (currentController.PageIndex == 0)
-                        return null!;
+                if (currentController.PageIndex == 0)
+                    return null!;
 
-                    return CreateViewController(currentController.PageIndex - 1)!;
-                }
+                return CreateViewController(currentController.PageIndex - 1)!;
             }
         }
 
@@ -125,36 +105,13 @@ namespace Maui.PDFView.Platforms.iOS
             else
             {
                 // SpineLocation.Min (Portrait)
-                var isDark = _appearance?.IsDarkMode == true;
-                if (pageViewController.DoubleSided && isDark)
-                {
-                    if (referenceViewController is PdfPageViewController currentController)
-                    {
-                        if (currentController.PageIndex + 1 >= _document.PageCount)
-                            return null!;
-
-                        return new PdfBlankPageViewController(isDark, currentController.PageIndex);
-                    }
-                    else if (referenceViewController is PdfBlankPageViewController blankController)
-                    {
-                        if (blankController.PageIndex + 1 >= _document.PageCount)
-                            return null!;
-
-                        return CreateViewController(blankController.PageIndex + 1)!;
-                    }
-
+                if (referenceViewController is not PdfPageViewController currentController)
                     return null!;
-                }
-                else
-                {
-                    if (referenceViewController is not PdfPageViewController currentController)
-                        return null!;
 
-                    if (currentController.PageIndex + 1 >= _document.PageCount)
-                        return null!;
+                if (currentController.PageIndex + 1 >= _document.PageCount)
+                    return null!;
 
-                    return CreateViewController(currentController.PageIndex + 1)!;
-                }
+                return CreateViewController(currentController.PageIndex + 1)!;
             }
         }
     }

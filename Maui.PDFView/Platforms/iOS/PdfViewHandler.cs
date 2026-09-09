@@ -135,7 +135,7 @@ namespace Maui.PDFView.Platforms.iOS
                 if (handler._pageViewController != null && handler.PlatformView != null)
                 {
                     var isLandscape = handler.DetermineIfLandscape(handler.PlatformView.Bounds.Width, handler.PlatformView.Bounds.Height);
-                    handler._pageViewController.DoubleSided = isLandscape || pdfView.IsDarkMode || (handler.VirtualView?.DoubleSided ?? false);
+                    handler._pageViewController.DoubleSided = isLandscape || (handler.VirtualView?.DoubleSided ?? false);
                 }
 
                 handler._pageRenderer.ClearCache();
@@ -435,7 +435,7 @@ namespace Maui.PDFView.Platforms.iOS
                 orientation,
                 spineLocation)
             {
-                DoubleSided = isLandscape || isDark || (VirtualView?.DoubleSided ?? false)
+                DoubleSided = isLandscape || (VirtualView?.DoubleSided ?? false)
             };
 
             var themeBg = _appearance?.IsDarkMode == true
@@ -609,10 +609,7 @@ namespace Maui.PDFView.Platforms.iOS
             }
             else
             {
-                var isDark = _appearance?.IsDarkMode == true;
-                var isDoubleSided = _pageViewController.DoubleSided;
-
-                if (currentIndex == pageIndex && animated && currentControllers != null && currentControllers.Length == (isDoubleSided ? 2 : 1))
+                if (currentIndex == pageIndex && animated && currentControllers != null && currentControllers.Length == 1)
                     return;
 
                 var targetController = _pageDataSource.CreateViewController(pageIndex);
@@ -623,12 +620,8 @@ namespace Maui.PDFView.Platforms.iOS
                     ? UIPageViewControllerNavigationDirection.Forward
                     : UIPageViewControllerNavigationDirection.Reverse;
 
-                var controllers = isDoubleSided
-                    ? new UIViewController[] { targetController, new PdfBlankPageViewController(isDark, pageIndex) }
-                    : new UIViewController[] { targetController };
-
                 _pageViewController.SetViewControllers(
-                    controllers,
+                    new UIViewController[] { targetController },
                     direction,
                     animated,
                     null);

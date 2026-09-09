@@ -150,17 +150,12 @@ namespace Maui.PDFView.Platforms.iOS
 
                 currentController ??= _dataSource.CreateViewController(0);
 
-                var isDark = _appearance?.IsDarkMode == true;
-                pageViewController.DoubleSided = isDark;
+                pageViewController.DoubleSided = false;
 
                 if (currentController != null)
                 {
-                    var controllers = isDark
-                        ? new UIViewController[] { currentController, new PdfBlankPageViewController(isDark, fallbackIndex) }
-                        : new UIViewController[] { currentController };
-
                     pageViewController.SetViewControllers(
-                        controllers,
+                        new UIViewController[] { currentController },
                         UIPageViewControllerNavigationDirection.Forward,
                         false,
                         null);
