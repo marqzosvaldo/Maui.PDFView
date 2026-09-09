@@ -262,6 +262,7 @@ namespace Maui.PDFView.Platforms.iOS
             if (VirtualView != null)
             {
                 GotoPdfKitPage(VirtualView.PageIndex);
+                NotifyPageChanged(VirtualView.PageIndex);
             }
         }
 
@@ -594,17 +595,16 @@ namespace Maui.PDFView.Platforms.iOS
                     animated,
                     null);
 
-                if (VirtualView != null && VirtualView.PageIndex != leftPage)
+                if (VirtualView != null)
                 {
-                    _isScrolling = true;
-                    VirtualView.PageIndex = leftPage;
-                    _isScrolling = false;
-
-                    if (VirtualView.PageChangedCommand?.CanExecute(null) == true && _pdfDocument != null)
+                    if (VirtualView.PageIndex != leftPage)
                     {
-                        VirtualView.PageChangedCommand.Execute(
-                            new PageChangedEventArgs((int)leftPage + 1, (int)_pdfDocument.PageCount));
+                        _isScrolling = true;
+                        VirtualView.PageIndex = leftPage;
+                        _isScrolling = false;
                     }
+
+                    NotifyPageChanged(leftPage);
                 }
             }
             else
@@ -626,18 +626,27 @@ namespace Maui.PDFView.Platforms.iOS
                     animated,
                     null);
 
-                if (VirtualView != null && VirtualView.PageIndex != pageIndex)
+                if (VirtualView != null)
                 {
-                    _isScrolling = true;
-                    VirtualView.PageIndex = pageIndex;
-                    _isScrolling = false;
-
-                    if (VirtualView.PageChangedCommand?.CanExecute(null) == true && _pdfDocument != null)
+                    if (VirtualView.PageIndex != pageIndex)
                     {
-                        VirtualView.PageChangedCommand.Execute(
-                            new PageChangedEventArgs((int)pageIndex + 1, (int)_pdfDocument.PageCount));
+                        _isScrolling = true;
+                        VirtualView.PageIndex = pageIndex;
+                        _isScrolling = false;
                     }
+
+                    NotifyPageChanged(pageIndex);
                 }
+            }
+        }
+
+        private void NotifyPageChanged(uint pageIndex)
+        {
+            var virtualView = VirtualView;
+            if (virtualView?.PageChangedCommand?.CanExecute(null) == true && _pdfDocument != null)
+            {
+                virtualView.PageChangedCommand.Execute(
+                    new PageChangedEventArgs((int)pageIndex + 1, (int)_pdfDocument.PageCount));
             }
         }
 
