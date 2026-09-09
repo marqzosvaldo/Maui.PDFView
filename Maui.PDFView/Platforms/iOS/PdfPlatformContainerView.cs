@@ -16,6 +16,8 @@ namespace Maui.PDFView.Platforms.iOS
             AutoresizingMask = UIViewAutoresizing.FlexibleDimensions;
         }
 
+        public Action<CGSize>? OnBoundsChanged { get; set; }
+
         public void SetContentView(UIView contentView, UIViewController? childViewController = null)
         {
             if (_currentContentView == contentView)
@@ -35,19 +37,23 @@ namespace Maui.PDFView.Platforms.iOS
 
         public void DetachCurrent()
         {
-            if (_currentChildController != null && _parentViewController != null)
+            if (_currentChildController != null)
             {
-                _currentChildController.WillMoveToParentViewController(null);
-                _currentChildController.View?.RemoveFromSuperview();
-                _currentChildController.RemoveFromParentViewController();
+                if (_currentChildController.ParentViewController != null)
+                {
+                    _currentChildController.WillMoveToParentViewController(null);
+                    _currentChildController.RemoveFromParentViewController();
+                }
                 _currentChildController = null;
             }
-            else if (_currentContentView != null)
+
+            if (_currentContentView != null)
             {
                 _currentContentView.RemoveFromSuperview();
+                _currentContentView = null;
             }
 
-            _currentContentView = null;
+            _parentViewController = null;
         }
 
         public override void MovedToWindow()
@@ -75,11 +81,14 @@ namespace Maui.PDFView.Platforms.iOS
                 return;
 
             var parent = FindParentViewController();
-            if (parent != null && parent != _parentViewController)
+            if (parent != null)
             {
                 _parentViewController = parent;
-                parent.AddChildViewController(_currentChildController);
-                _currentChildController.DidMoveToParentViewController(parent);
+                if (_currentChildController.ParentViewController != parent)
+                {
+                    parent.AddChildViewController(_currentChildController);
+                    _currentChildController.DidMoveToParentViewController(parent);
+                }
             }
         }
 
@@ -101,6 +110,14 @@ namespace Maui.PDFView.Platforms.iOS
             if (_currentContentView != null && _currentContentView.Frame != Bounds)
             {
                 _currentContentView.Frame = Bounds;
+            }
+            if (Bounds.Width > 0 && Bounds.Height > 0)
+            {
+                var size = Bounds.Size;
+                BeginInvokeOnMainThread(() =>
+                {
+                    OnBoundsChanged?.Invoke(size);
+                });
             }
         }
     }

@@ -47,6 +47,15 @@ namespace Maui.PDFView.Platforms.iOS
             UIPageViewController pageViewController,
             UIViewController referenceViewController)
         {
+            if (referenceViewController is PdfBlankPageViewController)
+            {
+                if (_document.PageCount > 0)
+                {
+                    return CreateViewController((uint)(_document.PageCount - 1))!;
+                }
+                return null!;
+            }
+
             if (referenceViewController is not PdfPageViewController currentController)
                 return null!;
 
@@ -60,11 +69,21 @@ namespace Maui.PDFView.Platforms.iOS
             UIPageViewController pageViewController,
             UIViewController referenceViewController)
         {
+            if (referenceViewController is PdfBlankPageViewController)
+                return null!;
+
             if (referenceViewController is not PdfPageViewController currentController)
                 return null!;
 
             if (currentController.PageIndex + 1 >= _document.PageCount)
+            {
+                if (pageViewController.SpineLocation == UIPageViewControllerSpineLocation.Mid &&
+                    currentController.PageIndex % 2 == 0)
+                {
+                    return new PdfBlankPageViewController();
+                }
                 return null!;
+            }
 
             return CreateViewController(currentController.PageIndex + 1)!;
         }

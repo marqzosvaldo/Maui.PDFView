@@ -13,5 +13,6 @@ namespace Maui.PDFView
         ICommand PageChangedCommand { get; set; }
         PdfTransitionMode TransitionMode { get; set; }
         bool DoubleSided { get; set; }
+        bool IsDualPage { get; set; }
     }
 }

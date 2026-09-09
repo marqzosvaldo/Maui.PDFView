@@ -29,7 +29,13 @@ namespace Maui.PDFView.Platforms.iOS
             if (document == null || pageIndex >= document.PageCount)
                 return null;
 
-            var key = new NSNumber(pageIndex);
+            if (targetSize.Width <= 0 || targetSize.Height <= 0)
+            {
+                var screenBounds = UIScreen.MainScreen.Bounds;
+                targetSize = screenBounds.Size;
+            }
+
+            var key = new NSString($"{pageIndex}_{(int)targetSize.Width}x{(int)targetSize.Height}");
             var cached = _imageCache.ObjectForKey(key) as UIImage;
             if (cached != null)
                 return cached;
@@ -37,12 +43,6 @@ namespace Maui.PDFView.Platforms.iOS
             var page = document.GetPage((nint)pageIndex);
             if (page == null)
                 return null;
-
-            if (targetSize.Width <= 0 || targetSize.Height <= 0)
-            {
-                var screenBounds = UIScreen.MainScreen.Bounds;
-                targetSize = screenBounds.Size;
-            }
 
             var screenScale = UIScreen.MainScreen.Scale;
             var format = new UIGraphicsImageRendererFormat

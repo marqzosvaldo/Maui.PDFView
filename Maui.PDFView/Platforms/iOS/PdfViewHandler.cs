@@ -20,6 +20,7 @@ namespace Maui.PDFView.Platforms.iOS
             [nameof(IPdfView.PageIndex)] = MapPageIndex,
             [nameof(IPdfView.TransitionMode)] = MapTransitionMode,
             [nameof(IPdfView.DoubleSided)] = MapDoubleSided,
+            [nameof(IPdfView.IsDualPage)] = MapIsDualPage,
         };
 
         private string? _fileName;
@@ -37,6 +38,7 @@ namespace Maui.PDFView.Platforms.iOS
         private PdfPageDelegate? _pageDelegate;
         private readonly PdfPageRenderer _pageRenderer = new();
         private PdfDocument? _pdfDocument;
+        private UIPageViewControllerSpineLocation _currentSpineLocation = UIPageViewControllerSpineLocation.Min;
 
         public PdfViewHandler() : base(PropertyMapper, null)
         {
@@ -53,8 +55,8 @@ namespace Maui.PDFView.Platforms.iOS
             if (handler._pdfKitView != null)
             {
                 handler._pdfKitView.DisplayDirection = pdfView.IsHorizontal
-                    ? PdfDisplayDirection.Horizontal
-                    : PdfDisplayDirection.Vertical;
+                    ? PdfKit.PdfDisplayDirection.Horizontal
+                    : PdfKit.PdfDisplayDirection.Vertical;
             }
 
             if (pdfView.TransitionMode == PdfTransitionMode.PageCurl)
@@ -65,13 +67,9 @@ namespace Maui.PDFView.Platforms.iOS
 
         static void MapMaxZoom(PdfViewHandler handler, IPdfView pdfView)
         {
-            if (pdfView.TransitionMode == PdfTransitionMode.ContinuousScroll)
+            if (handler._pdfKitView != null)
             {
-                handler.RenderContinuousPages();
-            }
-            else
-            {
-                handler.SetupPageCurlMode();
+                handler._pdfKitView.MaxScaleFactor = pdfView.MaxZoom;
             }
         }
 
@@ -109,16 +107,35 @@ namespace Maui.PDFView.Platforms.iOS
             }
         }
 
+        static void MapIsDualPage(PdfViewHandler handler, IPdfView pdfView)
+        {
+            // OneWayToSource from platform to VirtualView
+        }
+
         protected override PdfPlatformContainerView CreatePlatformView()
         {
             return new PdfPlatformContainerView();
+        }
+
+        protected override void ConnectHandler(PdfPlatformContainerView platformView)
+        {
+            base.ConnectHandler(platformView);
+            platformView.OnBoundsChanged = OnPlatformViewBoundsChanged;
+        }
+
+        private void OnPlatformViewBoundsChanged(CGSize newSize)
+        {
+            if (VirtualView?.TransitionMode == PdfTransitionMode.PageCurl && newSize.Width > 0 && newSize.Height > 0)
+            {
+                CheckAndReconfigureSpineLocation(newSize.Width, newSize.Height);
+            }
         }
 
         public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
         {
             if (_sizeHelper.UpdateSize(widthConstraint, heightConstraint))
             {
-                if (VirtualView.TransitionMode == PdfTransitionMode.ContinuousScroll)
+                if (VirtualView?.TransitionMode == PdfTransitionMode.ContinuousScroll)
                 {
                     RenderContinuousPages();
                 }
@@ -127,8 +144,19 @@ namespace Maui.PDFView.Platforms.iOS
             return base.GetDesiredSize(widthConstraint, heightConstraint);
         }
 
+        public override void PlatformArrange(Microsoft.Maui.Graphics.Rect frame)
+        {
+            base.PlatformArrange(frame);
+
+            if (VirtualView?.TransitionMode == PdfTransitionMode.PageCurl && frame.Width > 0 && frame.Height > 0)
+            {
+                CheckAndReconfigureSpineLocation(frame.Width, frame.Height);
+            }
+        }
+
         protected override void DisconnectHandler(PdfPlatformContainerView platformView)
         {
+            platformView.OnBoundsChanged = null;
             CleanUpPdfKitView();
             CleanUpPageViewController();
             _pageRenderer.Dispose();
@@ -301,7 +329,57 @@ namespace Maui.PDFView.Platforms.iOS
 
         #region Page Curl Mode (UIPageViewController)
 
-        private void SetupPageCurlMode()
+        private bool DetermineIfLandscape(double width = 0, double height = 0)
+        {
+            var isPad = UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Pad;
+            if (!isPad)
+                return false;
+
+            if (width > 0 && height > 0 && !double.IsInfinity(width) && !double.IsInfinity(height) && Math.Abs(width - height) > 20)
+            {
+                return width > height;
+            }
+
+            if (PlatformView != null && PlatformView.Bounds.Width > 0 && PlatformView.Bounds.Height > 0 && Math.Abs(PlatformView.Bounds.Width - PlatformView.Bounds.Height) > 20)
+            {
+                return PlatformView.Bounds.Width > PlatformView.Bounds.Height;
+            }
+
+            if (VirtualView != null && VirtualView.Width > 0 && VirtualView.Height > 0 && Math.Abs(VirtualView.Width - VirtualView.Height) > 20)
+            {
+                return VirtualView.Width > VirtualView.Height;
+            }
+
+            var windowScene = UIApplication.SharedApplication.ConnectedScenes.ToArray()
+                .OfType<UIWindowScene>()
+                .FirstOrDefault(s => s.ActivationState == UISceneActivationState.ForegroundActive)
+                ?? UIApplication.SharedApplication.ConnectedScenes.ToArray().OfType<UIWindowScene>().FirstOrDefault();
+
+            if (windowScene != null && windowScene.InterfaceOrientation != UIInterfaceOrientation.Unknown)
+            {
+                return windowScene.InterfaceOrientation == UIInterfaceOrientation.LandscapeLeft ||
+                       windowScene.InterfaceOrientation == UIInterfaceOrientation.LandscapeRight;
+            }
+
+            return UIScreen.MainScreen.Bounds.Width > UIScreen.MainScreen.Bounds.Height;
+        }
+
+        private void CheckAndReconfigureSpineLocation(double width = 0, double height = 0)
+        {
+            if (_pdfDocument == null || VirtualView?.TransitionMode != PdfTransitionMode.PageCurl)
+                return;
+
+            var targetSpine = DetermineIfLandscape(width, height)
+                ? UIPageViewControllerSpineLocation.Mid
+                : UIPageViewControllerSpineLocation.Min;
+
+            if (_pageViewController == null || _currentSpineLocation != targetSpine)
+            {
+                SetupPageCurlMode(width, height);
+            }
+        }
+
+        private void SetupPageCurlMode(double width = 0, double height = 0)
         {
             if (_pdfDocument == null)
                 return;
@@ -312,14 +390,19 @@ namespace Maui.PDFView.Platforms.iOS
                 ? UIPageViewControllerNavigationOrientation.Vertical
                 : UIPageViewControllerNavigationOrientation.Horizontal;
 
-            var spineLocation = UIPageViewControllerSpineLocation.Min;
+            var isLandscape = DetermineIfLandscape(width, height);
+            var spineLocation = isLandscape
+                ? UIPageViewControllerSpineLocation.Mid
+                : UIPageViewControllerSpineLocation.Min;
+
+            _currentSpineLocation = spineLocation;
 
             _pageViewController = new UIPageViewController(
                 UIPageViewControllerTransitionStyle.PageCurl,
                 orientation,
                 spineLocation)
             {
-                DoubleSided = VirtualView?.DoubleSided ?? false
+                DoubleSided = isLandscape || (VirtualView?.DoubleSided ?? false)
             };
 
             _pageDataSource = new PdfPageDataSource(
@@ -329,15 +412,52 @@ namespace Maui.PDFView.Platforms.iOS
                 VirtualView?.MaxZoom ?? 1.0f,
                 OnZoomStateChanged);
 
-            _pageDelegate = new PdfPageDelegate(OnPageCurlFinishedAnimating);
+            _pageDelegate = new PdfPageDelegate(
+                _pdfDocument,
+                _pageDataSource,
+                OnPageCurlFinishedAnimating,
+                OnSpineChangedFromDelegate);
 
             _pageViewController.DataSource = _pageDataSource;
             _pageViewController.Delegate = _pageDelegate;
 
             PlatformView.SetContentView(_pageViewController.View!, _pageViewController);
 
+            UpdateVirtualViewDualPage(isLandscape);
+
             var initialIndex = VirtualView?.PageIndex ?? 0;
             GotoPageCurl(initialIndex, animated: false);
+        }
+
+        private void OnSpineChangedFromDelegate(bool isDualPage, uint currentPageIndex)
+        {
+            _currentSpineLocation = isDualPage
+                ? UIPageViewControllerSpineLocation.Mid
+                : UIPageViewControllerSpineLocation.Min;
+
+            UpdateVirtualViewDualPage(isDualPage);
+
+            var virtualView = VirtualView;
+            if (virtualView != null && virtualView.PageIndex != currentPageIndex)
+            {
+                _isScrolling = true;
+                virtualView.PageIndex = currentPageIndex;
+                _isScrolling = false;
+
+                if (virtualView.PageChangedCommand?.CanExecute(null) == true && _pdfDocument != null)
+                {
+                    virtualView.PageChangedCommand.Execute(
+                        new PageChangedEventArgs((int)currentPageIndex + 1, (int)_pdfDocument.PageCount));
+                }
+            }
+        }
+
+        private void UpdateVirtualViewDualPage(bool isDualPage)
+        {
+            if (VirtualView != null && VirtualView.IsDualPage != isDualPage)
+            {
+                VirtualView.IsDualPage = isDualPage;
+            }
         }
 
         private void OnZoomStateChanged(bool isZoomed)
@@ -386,32 +506,104 @@ namespace Maui.PDFView.Platforms.iOS
                 currentControllers[0] is PdfPageViewController currentVC)
             {
                 currentIndex = currentVC.PageIndex;
-                if (currentIndex == pageIndex && animated)
-                    return;
             }
 
-            var targetController = _pageDataSource.CreateViewController(pageIndex);
-            if (targetController == null)
-                return;
+            if (_pageViewController.SpineLocation == UIPageViewControllerSpineLocation.Mid)
+            {
+                uint leftPage = (pageIndex % 2 == 0) ? pageIndex : pageIndex - 1;
+                uint rightPage = leftPage + 1;
 
-            var direction = pageIndex >= currentIndex
-                ? UIPageViewControllerNavigationDirection.Forward
-                : UIPageViewControllerNavigationDirection.Reverse;
+                if (currentControllers != null && currentControllers.Length == 2 &&
+                    currentControllers[0] is PdfPageViewController currentLeftVC)
+                {
+                    if (currentLeftVC.PageIndex == leftPage && animated)
+                        return;
+                }
 
-            _pageViewController.SetViewControllers(
-                new UIViewController[] { targetController },
-                direction,
-                animated,
-                null);
+                var leftController = _pageDataSource.CreateViewController(leftPage);
+                if (leftController == null)
+                    return;
+
+                UIViewController rightController;
+                if (rightPage < _pdfDocument.PageCount)
+                {
+                    rightController = (UIViewController?)_pageDataSource.CreateViewController(rightPage) ?? CreateBlankPageViewController();
+                }
+                else
+                {
+                    rightController = CreateBlankPageViewController();
+                }
+
+                var direction = leftPage >= currentIndex
+                    ? UIPageViewControllerNavigationDirection.Forward
+                    : UIPageViewControllerNavigationDirection.Reverse;
+
+                _pageViewController.SetViewControllers(
+                    new UIViewController[] { leftController, rightController },
+                    direction,
+                    animated,
+                    null);
+
+                if (VirtualView != null && VirtualView.PageIndex != leftPage)
+                {
+                    _isScrolling = true;
+                    VirtualView.PageIndex = leftPage;
+                    _isScrolling = false;
+
+                    if (VirtualView.PageChangedCommand?.CanExecute(null) == true && _pdfDocument != null)
+                    {
+                        VirtualView.PageChangedCommand.Execute(
+                            new PageChangedEventArgs((int)leftPage + 1, (int)_pdfDocument.PageCount));
+                    }
+                }
+            }
+            else
+            {
+                if (currentIndex == pageIndex && animated && currentControllers != null && currentControllers.Length == 1)
+                    return;
+
+                var targetController = _pageDataSource.CreateViewController(pageIndex);
+                if (targetController == null)
+                    return;
+
+                var direction = pageIndex >= currentIndex
+                    ? UIPageViewControllerNavigationDirection.Forward
+                    : UIPageViewControllerNavigationDirection.Reverse;
+
+                _pageViewController.SetViewControllers(
+                    new UIViewController[] { targetController },
+                    direction,
+                    animated,
+                    null);
+
+                if (VirtualView != null && VirtualView.PageIndex != pageIndex)
+                {
+                    _isScrolling = true;
+                    VirtualView.PageIndex = pageIndex;
+                    _isScrolling = false;
+
+                    if (VirtualView.PageChangedCommand?.CanExecute(null) == true && _pdfDocument != null)
+                    {
+                        VirtualView.PageChangedCommand.Execute(
+                            new PageChangedEventArgs((int)pageIndex + 1, (int)_pdfDocument.PageCount));
+                    }
+                }
+            }
+        }
+
+        private static UIViewController CreateBlankPageViewController()
+        {
+            return new PdfBlankPageViewController();
         }
 
         private void CleanUpPageViewController()
         {
+            PlatformView?.DetachCurrent();
+
             if (_pageViewController != null)
             {
                 _pageViewController.DataSource = null!;
                 _pageViewController.Delegate = null!;
-                _pageViewController.View?.RemoveFromSuperview();
                 _pageViewController.Dispose();
                 _pageViewController = null;
             }

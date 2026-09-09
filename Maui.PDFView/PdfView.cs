@@ -61,6 +61,13 @@ namespace Maui.PDFView
                 declaringType: typeof(PdfView),
                 defaultValue: false);
 
+        public static readonly BindableProperty IsDualPageProperty = BindableProperty.Create(
+                propertyName: nameof(IsDualPage),
+                returnType: typeof(bool),
+                declaringType: typeof(PdfView),
+                defaultValue: false,
+                defaultBindingMode: BindingMode.OneWayToSource);
+
         public string? Uri
         {
             get => (string?)GetValue(UriProperty);
@@ -113,6 +120,12 @@ namespace Maui.PDFView
         {
             get => (bool)GetValue(DoubleSidedProperty);
             set => SetValue(DoubleSidedProperty, value);
+        }
+
+        public bool IsDualPage
+        {
+            get => (bool)GetValue(IsDualPageProperty);
+            set => SetValue(IsDualPageProperty, value);
         }
 
         private static void OnEnablePageCurlPropertyChanged(BindableObject bindable, object oldValue, object newValue)
