@@ -47,45 +47,115 @@ namespace Maui.PDFView.Platforms.iOS
             UIPageViewController pageViewController,
             UIViewController referenceViewController)
         {
-            if (referenceViewController is PdfBlankPageViewController)
+            if (pageViewController.SpineLocation == UIPageViewControllerSpineLocation.Mid)
             {
-                if (_document.PageCount > 0)
+                if (referenceViewController is PdfBlankPageViewController)
                 {
-                    return CreateViewController((uint)(_document.PageCount - 1))!;
+                    if (_document.PageCount > 0)
+                    {
+                        return CreateViewController((uint)(_document.PageCount - 1))!;
+                    }
+                    return null!;
                 }
-                return null!;
+
+                if (referenceViewController is not PdfPageViewController currentController)
+                    return null!;
+
+                if (currentController.PageIndex == 0)
+                    return null!;
+
+                return CreateViewController(currentController.PageIndex - 1)!;
             }
+            else
+            {
+                // SpineLocation.Min (Portrait)
+                var isDark = _appearance?.IsDarkMode == true;
+                if (pageViewController.DoubleSided)
+                {
+                    if (referenceViewController is PdfPageViewController currentController)
+                    {
+                        if (currentController.PageIndex == 0)
+                            return null!;
 
-            if (referenceViewController is not PdfPageViewController currentController)
-                return null!;
+                        return new PdfBlankPageViewController(isDark, currentController.PageIndex - 1);
+                    }
+                    else if (referenceViewController is PdfBlankPageViewController blankController)
+                    {
+                        return CreateViewController(blankController.PageIndex)!;
+                    }
 
-            if (currentController.PageIndex == 0)
-                return null!;
+                    return null!;
+                }
+                else
+                {
+                    if (referenceViewController is not PdfPageViewController currentController)
+                        return null!;
 
-            return CreateViewController(currentController.PageIndex - 1)!;
+                    if (currentController.PageIndex == 0)
+                        return null!;
+
+                    return CreateViewController(currentController.PageIndex - 1)!;
+                }
+            }
         }
 
         public override UIViewController GetNextViewController(
             UIPageViewController pageViewController,
             UIViewController referenceViewController)
         {
-            if (referenceViewController is PdfBlankPageViewController)
-                return null!;
-
-            if (referenceViewController is not PdfPageViewController currentController)
-                return null!;
-
-            if (currentController.PageIndex + 1 >= _document.PageCount)
+            if (pageViewController.SpineLocation == UIPageViewControllerSpineLocation.Mid)
             {
-                if (pageViewController.SpineLocation == UIPageViewControllerSpineLocation.Mid &&
-                    currentController.PageIndex % 2 == 0)
-                {
-                    return new PdfBlankPageViewController(_appearance?.IsDarkMode == true);
-                }
-                return null!;
-            }
+                if (referenceViewController is PdfBlankPageViewController)
+                    return null!;
 
-            return CreateViewController(currentController.PageIndex + 1)!;
+                if (referenceViewController is not PdfPageViewController currentController)
+                    return null!;
+
+                if (currentController.PageIndex + 1 >= _document.PageCount)
+                {
+                    if (currentController.PageIndex % 2 == 0)
+                    {
+                        return new PdfBlankPageViewController(_appearance?.IsDarkMode == true);
+                    }
+                    return null!;
+                }
+
+                return CreateViewController(currentController.PageIndex + 1)!;
+            }
+            else
+            {
+                // SpineLocation.Min (Portrait)
+                var isDark = _appearance?.IsDarkMode == true;
+                if (pageViewController.DoubleSided)
+                {
+                    if (referenceViewController is PdfPageViewController currentController)
+                    {
+                        if (currentController.PageIndex + 1 >= _document.PageCount)
+                            return null!;
+
+                        return new PdfBlankPageViewController(isDark, currentController.PageIndex);
+                    }
+                    else if (referenceViewController is PdfBlankPageViewController blankController)
+                    {
+                        if (blankController.PageIndex + 1 >= _document.PageCount)
+                            return null!;
+
+                        return CreateViewController(blankController.PageIndex + 1)!;
+                    }
+
+                    return null!;
+                }
+                else
+                {
+                    if (referenceViewController is not PdfPageViewController currentController)
+                        return null!;
+
+                    if (currentController.PageIndex + 1 >= _document.PageCount)
+                        return null!;
+
+                    return CreateViewController(currentController.PageIndex + 1)!;
+                }
+            }
         }
     }
 }

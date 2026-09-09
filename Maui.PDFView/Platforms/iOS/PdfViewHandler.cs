@@ -427,7 +427,7 @@ namespace Maui.PDFView.Platforms.iOS
                 orientation,
                 spineLocation)
             {
-                DoubleSided = isLandscape || (VirtualView?.DoubleSided ?? false)
+                DoubleSided = true
             };
 
             var themeBg = _appearance?.IsDarkMode == true
@@ -538,10 +538,16 @@ namespace Maui.PDFView.Platforms.iOS
 
             var currentControllers = _pageViewController.ViewControllers;
             uint currentIndex = 0;
-            if (currentControllers != null && currentControllers.Length > 0 &&
-                currentControllers[0] is PdfPageViewController currentVC)
+            if (currentControllers != null && currentControllers.Length > 0)
             {
-                currentIndex = currentVC.PageIndex;
+                if (currentControllers[0] is PdfPageViewController currentVC)
+                {
+                    currentIndex = currentVC.PageIndex;
+                }
+                else if (currentControllers[0] is PdfBlankPageViewController blankVC)
+                {
+                    currentIndex = blankVC.PageIndex;
+                }
             }
 
             if (_pageViewController.SpineLocation == UIPageViewControllerSpineLocation.Mid)

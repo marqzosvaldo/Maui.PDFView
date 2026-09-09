@@ -86,10 +86,16 @@ namespace Maui.PDFView.Platforms.iOS
             {
                 var currentControllers = pageViewController.ViewControllers;
                 uint currentPage = 0;
-                if (currentControllers != null && currentControllers.Length > 0 &&
-                    currentControllers[0] is PdfPageViewController currentVC)
+                if (currentControllers != null && currentControllers.Length > 0)
                 {
-                    currentPage = currentVC.PageIndex;
+                    if (currentControllers[0] is PdfPageViewController currentVC)
+                    {
+                        currentPage = currentVC.PageIndex;
+                    }
+                    else if (currentControllers[0] is PdfBlankPageViewController currentBlank)
+                    {
+                        currentPage = currentBlank.PageIndex;
+                    }
                 }
 
                 uint leftPage = (currentPage % 2 == 0) ? currentPage : currentPage - 1;
@@ -122,9 +128,24 @@ namespace Maui.PDFView.Platforms.iOS
             else
             {
                 var currentControllers = pageViewController.ViewControllers;
-                var currentController = (currentControllers != null && currentControllers.Length > 0)
-                    ? currentControllers[0]
-                    : _dataSource.CreateViewController(0);
+                UIViewController? currentController = null;
+                uint fallbackIndex = 0;
+
+                if (currentControllers != null && currentControllers.Length > 0)
+                {
+                    if (currentControllers[0] is PdfPageViewController pvc)
+                    {
+                        currentController = pvc;
+                        fallbackIndex = pvc.PageIndex;
+                    }
+                    else if (currentControllers[0] is PdfBlankPageViewController bvc)
+                    {
+                        currentController = _dataSource.CreateViewController(bvc.PageIndex);
+                        fallbackIndex = bvc.PageIndex;
+                    }
+                }
+
+                currentController ??= _dataSource.CreateViewController(0);
 
                 if (currentController != null)
                 {
@@ -135,8 +156,7 @@ namespace Maui.PDFView.Platforms.iOS
                         null);
                 }
 
-                pageViewController.DoubleSided = false;
-                var fallbackIndex = (currentController is PdfPageViewController pvc) ? pvc.PageIndex : 0u;
+                pageViewController.DoubleSided = true;
                 _onSpineChanged?.Invoke(false, fallbackIndex);
                 return UIPageViewControllerSpineLocation.Min;
             }
