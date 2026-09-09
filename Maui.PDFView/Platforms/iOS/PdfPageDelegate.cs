@@ -10,6 +10,7 @@ namespace Maui.PDFView.Platforms.iOS
     {
         private readonly PdfDocument _document;
         private readonly PdfPageDataSource _dataSource;
+        private readonly PageAppearance? _appearance;
         private readonly Action<uint> _onPageChanged;
         private readonly Action<bool, uint>? _onSpineChanged;
         private readonly Func<UIViewController>? _createBlankPage;
@@ -17,12 +18,14 @@ namespace Maui.PDFView.Platforms.iOS
         public PdfPageDelegate(
             PdfDocument document,
             PdfPageDataSource dataSource,
+            PageAppearance? appearance,
             Action<uint> onPageChanged,
             Action<bool, uint>? onSpineChanged = null,
             Func<UIViewController>? createBlankPage = null)
         {
             _document = document;
             _dataSource = dataSource;
+            _appearance = appearance;
             _onPageChanged = onPageChanged;
             _onSpineChanged = onSpineChanged;
             _createBlankPage = createBlankPage;
@@ -156,7 +159,8 @@ namespace Maui.PDFView.Platforms.iOS
                         null);
                 }
 
-                pageViewController.DoubleSided = true;
+                var isDark = _appearance?.IsDarkMode == true;
+                pageViewController.DoubleSided = isDark;
                 _onSpineChanged?.Invoke(false, fallbackIndex);
                 return UIPageViewControllerSpineLocation.Min;
             }

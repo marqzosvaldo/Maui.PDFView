@@ -70,7 +70,7 @@ namespace Maui.PDFView.Platforms.iOS
             {
                 // SpineLocation.Min (Portrait)
                 var isDark = _appearance?.IsDarkMode == true;
-                if (pageViewController.DoubleSided)
+                if (pageViewController.DoubleSided && isDark)
                 {
                     if (referenceViewController is PdfPageViewController currentController)
                     {
@@ -126,7 +126,7 @@ namespace Maui.PDFView.Platforms.iOS
             {
                 // SpineLocation.Min (Portrait)
                 var isDark = _appearance?.IsDarkMode == true;
-                if (pageViewController.DoubleSided)
+                if (pageViewController.DoubleSided && isDark)
                 {
                     if (referenceViewController is PdfPageViewController currentController)
                     {

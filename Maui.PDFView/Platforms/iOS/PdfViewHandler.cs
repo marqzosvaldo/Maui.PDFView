@@ -132,6 +132,12 @@ namespace Maui.PDFView.Platforms.iOS
 
             if (pdfView.TransitionMode == PdfTransitionMode.PageCurl)
             {
+                if (handler._pageViewController != null && handler.PlatformView != null)
+                {
+                    var isLandscape = handler.DetermineIfLandscape(handler.PlatformView.Bounds.Width, handler.PlatformView.Bounds.Height);
+                    handler._pageViewController.DoubleSided = isLandscape || pdfView.IsDarkMode || (handler.VirtualView?.DoubleSided ?? false);
+                }
+
                 handler._pageRenderer.ClearCache();
                 handler.GotoPageCurl(pdfView.PageIndex, animated: false);
             }
@@ -416,6 +422,7 @@ namespace Maui.PDFView.Platforms.iOS
                 : UIPageViewControllerNavigationOrientation.Horizontal;
 
             var isLandscape = DetermineIfLandscape(width, height);
+            var isDark = _appearance?.IsDarkMode == true;
             var spineLocation = isLandscape
                 ? UIPageViewControllerSpineLocation.Mid
                 : UIPageViewControllerSpineLocation.Min;
@@ -427,7 +434,7 @@ namespace Maui.PDFView.Platforms.iOS
                 orientation,
                 spineLocation)
             {
-                DoubleSided = true
+                DoubleSided = isLandscape || isDark || (VirtualView?.DoubleSided ?? false)
             };
 
             var themeBg = _appearance?.IsDarkMode == true
@@ -450,6 +457,7 @@ namespace Maui.PDFView.Platforms.iOS
             _pageDelegate = new PdfPageDelegate(
                 _pdfDocument,
                 _pageDataSource,
+                _appearance,
                 OnPageCurlFinishedAnimating,
                 OnSpineChangedFromDelegate,
                 CreateBlankPageViewController);
