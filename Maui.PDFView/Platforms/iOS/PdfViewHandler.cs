@@ -40,6 +40,7 @@ namespace Maui.PDFView.Platforms.iOS
         private readonly PdfPageRenderer _pageRenderer = new();
         private PdfDocument? _pdfDocument;
         private UIPageViewControllerSpineLocation _currentSpineLocation = UIPageViewControllerSpineLocation.Min;
+        private bool _isCurlAnimating = false;
 
         public PdfViewHandler() : base(PropertyMapper, null)
         {
@@ -369,6 +370,7 @@ namespace Maui.PDFView.Platforms.iOS
             if (_pdfKitNotificationToken != null)
             {
                 NSNotificationCenter.DefaultCenter.RemoveObserver(_pdfKitNotificationToken);
+                _pdfKitNotificationToken.Dispose();
                 _pdfKitNotificationToken = null;
             }
 
@@ -543,6 +545,7 @@ namespace Maui.PDFView.Platforms.iOS
 
         private void OnPageCurlFinishedAnimating(uint newPageIndex)
         {
+            _isCurlAnimating = false;
             var virtualView = VirtualView;
             if (virtualView == null || _pdfDocument == null)
                 return;
@@ -564,6 +567,9 @@ namespace Maui.PDFView.Platforms.iOS
         private void GotoPageCurl(uint pageIndex, bool animated = true)
         {
             if (_isScrolling || _pageViewController == null || _pdfDocument == null || _pageDataSource == null)
+                return;
+
+            if (_isCurlAnimating && animated)
                 return;
 
             if (pageIndex >= _pdfDocument.PageCount)
@@ -589,13 +595,13 @@ namespace Maui.PDFView.Platforms.iOS
                 uint rightPage = leftPage + 1;
 
                 if (currentControllers != null && currentControllers.Length == 2 &&
-                    currentControllers[0] is PdfPageViewController currentLeftVC)
+                    currentControllers[0] is PdfPageViewController currentLeftVC &&
+                    currentLeftVC.PageIndex == leftPage && animated)
                 {
-                    if (currentLeftVC.PageIndex == leftPage && animated)
-                        return;
+                    return;
                 }
 
-                var leftController = _pageDataSource.CreateViewController(leftPage);
+                var leftController = (UIViewController?)_pageDataSource.CreateViewController(leftPage) ?? CreateBlankPageViewController();
                 if (leftController == null)
                     return;
 
@@ -613,11 +619,16 @@ namespace Maui.PDFView.Platforms.iOS
                     ? UIPageViewControllerNavigationDirection.Forward
                     : UIPageViewControllerNavigationDirection.Reverse;
 
+                if (animated)
+                {
+                    _isCurlAnimating = true;
+                }
+
                 _pageViewController.SetViewControllers(
                     new UIViewController[] { leftController, rightController },
                     direction,
                     animated,
-                    null);
+                    _ => { _isCurlAnimating = false; });
 
                 if (VirtualView != null)
                 {
@@ -644,11 +655,16 @@ namespace Maui.PDFView.Platforms.iOS
                     ? UIPageViewControllerNavigationDirection.Forward
                     : UIPageViewControllerNavigationDirection.Reverse;
 
+                if (animated)
+                {
+                    _isCurlAnimating = true;
+                }
+
                 _pageViewController.SetViewControllers(
                     new UIViewController[] { targetController },
                     direction,
                     animated,
-                    null);
+                    _ => { _isCurlAnimating = false; });
 
                 if (VirtualView != null)
                 {
@@ -701,6 +717,7 @@ namespace Maui.PDFView.Platforms.iOS
 
             _pageDataSource = null;
             _pageDelegate = null;
+            _isCurlAnimating = false;
         }
 
         #endregion

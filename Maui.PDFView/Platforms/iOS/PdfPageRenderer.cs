@@ -105,6 +105,7 @@ namespace Maui.PDFView.Platforms.iOS
             if (_memoryWarningObserver != null)
             {
                 NSNotificationCenter.DefaultCenter.RemoveObserver(_memoryWarningObserver);
+                _memoryWarningObserver.Dispose();
                 _memoryWarningObserver = null;
             }
             ClearCache();
